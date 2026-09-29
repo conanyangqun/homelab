@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -ex
+exec >> /var/log/upssched-cmd.log 2>&1
+
+# 关闭系统的函数
+function xpoweroff() {
+    logger -t upssched-cmd '准备关闭系统'
+    sync
+    sync
+    logger -t upssched-cmd '用upsmon关机'
+    /usr/sbin/upsmon -c fsd
+}
+
+case $1 in
+    onbattwarn)
+        logger -t upssched-cmd 'UPS已经切换到电池供电，准备安全关闭系统...'
+        xpoweroff
+        ;;
+    *)
+        logger -t upssched-cmd "未知命令: $1"
+        ;;
+esac
+
