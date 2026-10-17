@@ -3,9 +3,20 @@
 set -ex
 exec >> /var/log/upssched-cmd.log 2>&1
 
+# 记录UPS状态快照，用于事后分析时间线（只读，不影响关机逻辑）
+function snapshot() {
+    local s c r v
+    s=$(upsc ups ups.status 2>/dev/null) || s=NA
+    c=$(upsc ups battery.charge 2>/dev/null) || c=NA
+    r=$(upsc ups battery.runtime 2>/dev/null) || r=NA
+    v=$(upsc ups input.voltage 2>/dev/null) || v=NA
+    logger -t upssched-cmd "snapshot status=$s charge=$c% runtime=${r}s input=${v}V"
+}
+
 # 关闭系统的函数
 function xpoweroff() {
     logger -t upssched-cmd '准备关闭系统'
+    snapshot
     sync
     sync
     logger -t upssched-cmd '用upsmon关机'
@@ -15,6 +26,7 @@ function xpoweroff() {
 case $1 in
     onbattwarn)
         logger -t upssched-cmd 'UPS已经切换到电池供电，准备安全关闭系统...'
+        snapshot
         xpoweroff
         ;;
     *)
